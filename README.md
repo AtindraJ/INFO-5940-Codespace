@@ -77,3 +77,5 @@ git clone https://github.com/AtindraJ/INFO-5940-Codespace.git
 cd assignment1
 pip install -r requirements.txt
 ```
+
+Export your API_KEY in evironment variable similar to the Codespace setup and run the streamlit run command shown above.
