@@ -42,6 +42,6 @@ It uses **Retrieval-Augmented Generation (RAG)** powered by a persistent **Chrom
 
 Clone the repository and install dependencies:
 ```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
+git clone https://github.com/AtindraJ/INFO-5940-Codespace.git
+cd assignment1
 pip install -r requirements.txt
