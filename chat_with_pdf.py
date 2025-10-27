@@ -30,7 +30,7 @@ st.title("📝 File Q&A with RAG & ChromaDB")
 
 # Use a sidebar for the file uploader
 with st.sidebar:
-    st.header("1. Upload Documents")
+    st.header("Upload Documents")
     uploaded_files = st.file_uploader(
         "Upload one or more documents",
         type=("txt", "md", "pdf"),
