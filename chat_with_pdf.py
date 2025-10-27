@@ -13,13 +13,13 @@ from pypdf import PdfReader
 
 
 client = OpenAI(
-	api_key=os.environ["API_KEY"],
-	base_url="https://api.ai.it.cornell.edu",
+    api_key=os.environ["API_KEY"],
+    base_url="https://api.ai.it.cornell.edu",
 )
 
 # Initialize the text splitter (Spec 3.1)
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, 
+    chunk_size=1000,
     chunk_overlap=0,
     add_start_index=True
 )
@@ -52,7 +52,8 @@ with st.sidebar:
                 if uploaded_file.type == "application/pdf":
                     pdf_file = io.BytesIO(uploaded_file.getvalue())
                     reader = PdfReader(pdf_file)
-                    text_pages = [page.extract_text() or "" for page in reader.pages]
+                    text_pages = [
+                        page.extract_text() or "" for page in reader.pages]
                     file_content = "\n\n".join(text_pages)
 
                 # --- Handle text or markdown files ---
@@ -65,7 +66,8 @@ with st.sidebar:
 
                 # Add file content with filename as a header
                 if file_content.strip():
-                    all_texts.append(f"## Source: {uploaded_file.name}\n\n{file_content}")
+                    all_texts.append(
+                        f"## Source: {uploaded_file.name}\n\n{file_content}")
 
             if not all_texts:
                 st.error("No readable text found in uploaded files.")
@@ -83,7 +85,8 @@ with st.sidebar:
             # 3. Create ChromaDB vector store
             vectorstore = Chroma.from_documents(
                 documents=documents,
-                embedding=OpenAIEmbeddings(model="openai.text-embedding-3-large")
+                embedding=OpenAIEmbeddings(
+                    model="openai.text-embedding-3-large")
             )
 
             # 4. Store in session state
@@ -92,7 +95,8 @@ with st.sidebar:
 
             # 5. Reset chat
             st.session_state.messages = [
-                {"role": "assistant", "content": f"I'm ready! Ask me anything about your {len(uploaded_files)} document(s): {', '.join(uploaded_names)}"}
+                {"role": "assistant",
+                    "content": f"I'm ready! Ask me anything about your {len(uploaded_files)} document(s): {', '.join(uploaded_names)}"}
             ]
 
             st.success("All documents processed and vectorized!")
@@ -157,4 +161,5 @@ if question and "vectorstore" in st.session_state:
 
             response = st.write_stream(stream)
 
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append(
+        {"role": "assistant", "content": response})
