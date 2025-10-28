@@ -86,6 +86,7 @@ with st.sidebar:
             vectorstore = Chroma.from_documents(
                 documents=documents,
                 embedding=OpenAIEmbeddings(
+                    api_key=os.environ["API_KEY"],
                     model="openai.text-embedding-3-large")
             )
 
