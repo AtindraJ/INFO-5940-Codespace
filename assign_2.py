@@ -10,6 +10,7 @@ Highlights:
 """
 
 from __future__ import annotations
+from agents import Agent, Runner, function_tool, set_default_openai_key  # type: ignore
 
 import os
 import asyncio
@@ -74,7 +75,6 @@ def redact_for_logs(value: Any) -> Any:
 # These come from your own framework. We assume:
 # - Agent: defines a model + instructions + optional tools
 # - Runner.run(agent, input): executes an agent and returns an object with text
-from agents import Agent, Runner, function_tool  # type: ignore
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -88,20 +88,23 @@ def internet_search(query: str) -> str:
     - Reads TAVILY_API_KEY from environment.
     - Sends simple log events before/after the call so the UI can show activity.
     """
-    log_tool_event({"type": "call", "tool": "internet_search", "args": {"query": redact_for_logs(query)}})
+    log_tool_event({"type": "call", "tool": "internet_search",
+                   "args": {"query": redact_for_logs(query)}})
 
     try:
         api_key = os.getenv("TAVILY_API_KEY")
         if not api_key:
             msg = "missing TAVILY_API_KEY in environment."
-            log_tool_event({"type": "error", "tool": "internet_search", "error": msg})
+            log_tool_event(
+                {"type": "error", "tool": "internet_search", "error": msg})
             return f"Search error: {msg}"
 
         client = TavilyClient(api_key=api_key)
         response = client.search(query, max_results=3)
 
         items = response.get("results", [])
-        lines = [f"- {it.get('title', 'N/A')}: {it.get('content', 'N/A')}" for it in items]
+        lines = [
+            f"- {it.get('title', 'N/A')}: {it.get('content', 'N/A')}" for it in items]
         output = "\n".join(lines) if lines else "No results found."
 
         log_tool_event({
@@ -112,7 +115,8 @@ def internet_search(query: str) -> str:
         return output
 
     except Exception as e:
-        log_tool_event({"type": "error", "tool": "internet_search", "error": str(e)})
+        log_tool_event(
+            {"type": "error", "tool": "internet_search", "error": str(e)})
         return f"Search error: {e}"
 
     finally:
@@ -125,18 +129,49 @@ def internet_search(query: str) -> str:
 
 # BEGIN SOLUTION
 REVIEWER_INSTRUCTIONS = """
+You are an expert travel reviewer and fact-checker.
 
+Your role is to validate and refine the itinerary produced by the Planner Agent before it is shown to the user.
+
+Tasks:
+1. Check feasibility:
+   - Are locations open during the proposed times?
+   - Are travel times between stops realistic?
+   - Are ticket prices and opening hours accurate with current times?
+2. Identify issues:
+   - Spot conflicting or overlapping activities.
+   - Flag unrealistic pacing or logistics.
+3. Propose corrections:
+   - Use a “Delta List” with concise, actionable fixes (e.g., “Replace Louvre visit on Day 2 afternoon with Musée d’Orsay – Louvre closes early on Tuesdays.”)
+4. Use the `internet_search` tool for real-time fact-checking where needed.
+5. After corrections, provide a **final validated itinerary**.
+
+Goal:
+Deliver a polished, accurate, and feasible itinerary that the user can confidently follow.
 """
 
 PLANNER_INSTRUCTIONS = """
+You are an expert travel planner.
 
+Your task is to create a clear, well-structured, day-by-day travel itinerary based on the user's request.
+
+Requirements:
+- Include activities for each day with approximate times, locations, and estimated costs.
+- Group activities logically by nearby areas or city clusters.
+- Respect all user constraints (dates, budget, interests, pacing, travel style).
+- Add brief transportation notes between major destinations when relevant.
+- Keep tone informative, friendly, and concise.
+- Format output with clear day headers (e.g., “Day 1 - Arrival and City Walk”) and bullet points for activities.
+
+Goal:
+Produce an itinerary that feels realistic, enjoyable, and achievable within the given constraints.
 """
 
 reviewer_agent = Agent(
     name="Reviewer Agent",
     model="openai.gpt-4o",
     instructions=REVIEWER_INSTRUCTIONS.strip(),
-    tools=[]
+    tools=[internet_search]
 )
 
 planner_agent = Agent(
@@ -171,7 +206,7 @@ def run_planner(user_text: str) -> str:
 
 
 def run_reviewer(plan_text: str) -> str:
-    """Run the Reviewer on the planner’s output and return validated text."""
+    """Run the Reviewer on the planner's output and return validated text."""
     result = asyncio.run(Runner.run(reviewer_agent, plan_text))
     return extract_text(result)
 
@@ -195,6 +230,7 @@ with st.sidebar:
     st.subheader("Try these prompts")
     st.code("Plan a week-long Europe trip for a student on a $1,500 budget who loves history and food")
     st.code("3-day Paris trip for art lovers with $800 budget")
+    st.code("Plan a 2-day-long trip to Niagara Falls from the US side for a group of 6 students at cornell on a $200 budget each who love indian vegetrian food and want to travel by ourbus")
 
     st.subheader("Developer view")
     show_tools = st.toggle("Show tool activity (live)", value=True)
@@ -220,7 +256,8 @@ for i, msg in enumerate(st.session_state.messages):
                 st.caption(meta.get("trace", ""))
 
 # Chat input
-user_input = st.chat_input("Describe your travel (destination, duration, budget, interests)…")
+user_input = st.chat_input(
+    "Describe your travel (destination, duration, budget, interests)…")
 
 if user_input:
     # Add user message to history and render it
@@ -249,7 +286,8 @@ if user_input:
                     if et == "call":
                         st.write(f"• **{t}** called with `{ev.get('args')}`")
                     elif et == "result":
-                        st.write(f"• **{t}** result preview:\n\n> {ev.get('preview')}")
+                        st.write(
+                            f"• **{t}** result preview:\n\n> {ev.get('preview')}")
                     elif et == "error":
                         st.error(f"• **{t}** error: {ev.get('error')}")
                     elif et == "end":
@@ -265,13 +303,16 @@ if user_input:
 
             # Step 1: Planner
             with st.status("🧭 Planner Agent: generating itinerary…", expanded=True) as status:
-                live_msg.markdown("🧭 Planner Agent is creating your itinerary…")
+                live_msg.markdown(
+                    "🧭 Planner Agent is creating your itinerary…")
                 plan_text = run_planner(user_input)
                 progress.progress(40)
-                status.update(label="🔎 Reviewer Agent: validating with live searches…", state="running")
+                status.update(
+                    label="🔎 Reviewer Agent: validating with live searches…", state="running")
 
             # Step 2: Reviewer (tool calls will appear live in sidebar)
-            live_msg.markdown("🔎 Reviewer Agent is validating the plan with live searches…")
+            live_msg.markdown(
+                "🔎 Reviewer Agent is validating the plan with live searches…")
             review_text = run_reviewer(plan_text)
             progress.progress(90)
 
@@ -287,8 +328,10 @@ if user_input:
                 st.markdown(plan_text)
 
             # Save only the validated result to history
-            st.session_state.messages.append({"role": "assistant", "content": review_text})
-            st.session_state.meta.append({"trace": "Planner Agent → Reviewer Agent"})
+            st.session_state.messages.append(
+                {"role": "assistant", "content": review_text})
+            st.session_state.meta.append(
+                {"trace": "Planner Agent → Reviewer Agent"})
             st.caption("Planner Agent → Reviewer Agent")
 
         except Exception as e:
@@ -296,7 +339,8 @@ if user_input:
             live_msg.markdown("❌ Something went wrong.")
             err = f"⚠️ Error while processing your request:\n\n```\n{e}\n```"
             st.markdown(err)
-            st.session_state.messages.append({"role": "assistant", "content": err})
+            st.session_state.messages.append(
+                {"role": "assistant", "content": err})
             st.session_state.meta.append({"trace": "Runtime error."})
 
         finally:
